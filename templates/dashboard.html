@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Data Science Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        
+        .card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-btn {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .nav-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Header -->
+    <div class="gradient-bg py-6 shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-white">
+                    <i class="fas fa-chart-line mr-2"></i>
+                    Data Analysis Dashboard
+                </h1>
+                <div class="flex space-x-4">
+                    <a href="/clean-data" class="bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-purple-50 transition">
+                        <i class="fas fa-broom mr-2"></i>Clean Data
+                    </a>
+                    <a href="/" class="bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-purple-50 transition">
+                        <i class="fas fa-upload mr-2"></i>Upload New
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Dataset Info -->
+        <div class="card mb-8">
+            <h2 class="text-2xl font-bold mb-4"><i class="fas fa-info-circle mr-2 text-purple-600"></i>Dataset Information</h2>
+            <div id="datasetInfo" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="text-center p-4 bg-purple-50 rounded-lg">
+                    <div class="text-3xl font-bold text-purple-600" id="totalRows">-</div>
+                    <div class="text-sm text-gray-600">Total Rows</div>
+                </div>
+                <div class="text-center p-4 bg-blue-50 rounded-lg">
+                    <div class="text-3xl font-bold text-blue-600" id="totalColumns">-</div>
+                    <div class="text-sm text-gray-600">Total Columns</div>
+                </div>
+                <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                    <div class="text-3xl font-bold text-yellow-600" id="missingValues">-</div>
+                    <div class="text-sm text-gray-600">Missing Values</div>
+                </div>
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                    <div class="text-3xl font-bold text-green-600" id="duplicateRows">-</div>
+                    <div class="text-sm text-gray-600">Duplicate Rows</div>
+                </div>
+            </div>
+            <div class="mt-4 text-center">
+                <p class="text-gray-600">Current File: <span id="currentFile" class="font-semibold">-</span></p>
+            </div>
+        </div>
+
+        <!-- Navigation Grid -->
+        <h2 class="text-2xl font-bold mb-6 text-gray-800">
+            <i class="fas fa-chart-bar mr-2"></i>Analysis & Visualizations
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <a href="/visualization/pie-chart" class="nav-btn">
+                <i class="fas fa-chart-pie text-4xl text-purple-600 mb-3"></i>
+                <h3 class="font-bold text-lg">Pie Chart</h3>
+                <p class="text-sm text-gray-600">Categorical Distribution</p>
+            </a>
+            
+            <a href="/visualization/boxplot" class="nav-btn">
+                <i class="fas fa-box text-4xl text-blue-600 mb-3"></i>
+                <h3 class="font-bold text-lg">Box Plot</h3>
+                <p class="text-sm text-gray-600">Outlier Detection</p>
+            </a>
+            
+            <a href="/visualization/bar-chart" class="nav-btn">
+                <i class="fas fa-chart-bar text-4xl text-green-600 mb-3"></i>
+                <h3 class="font-bold text-lg">Bar Chart</h3>
+                <p class="text-sm text-gray-600">Category Comparison</p>
+            </a>
+            
+            <a href="/visualization/line-chart" class="nav-btn">
+                <i class="fas fa-chart-line text-4xl text-red-600 mb-3"></i>
+                <h3 class="font-bold text-lg">Line Chart</h3>
+                <p class="text-sm text-gray-600">Trend Analysis</p>
+            </a>
+            
+            <a href="/visualization/scatter-plot" class="nav-btn">
+                <i class="fas fa-braille text-4xl text-yellow-600 mb-3"></i>
+                <h3 class="font-bold text-lg">Scatter Plot</h3>
+                <p class="text-sm text-gray-600">Correlation Analysis</p>
+            </a>
+            
+            <a href="/visualization/heatmap" class="nav-btn">
+                <i class="fas fa-th text-4xl text-pink-600 mb-3"></i>
+                <h3 class="font-bold text-lg">Heatmap</h3>
+                <p class="text-sm text-gray-600">Correlation Matrix</p>
+            </a>
+            
+            <a href="/visualization/eda" class="nav-btn">
+                <i class="fas fa-search text-4xl text-indigo-600 mb-3"></i>
+                <h3 class="font-bold text-lg">EDA Report</h3>
+                <p class="text-sm text-gray-600">Comprehensive Analysis</p>
+            </a>
+            
+            <a href="/data-table" class="nav-btn">
+                <i class="fas fa-table text-4xl text-teal-600 mb-3"></i>
+                <h3 class="font-bold text-lg">Data Table</h3>
+                <p class="text-sm text-gray-600">View Raw Data</p>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Load dataset info
+        fetch('/api/overview')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('API Error:', data.error);
+                    alert('Error loading data: ' + data.error + '\nPlease upload and clean a dataset first.');
+                    window.location.href = '/';
+                    return;
+                }
+                document.getElementById('totalRows').textContent = data.rows || data.total_firms || 0;
+                document.getElementById('totalColumns').textContent = data.columns || 0;
+                document.getElementById('missingValues').textContent = data.missing_values || 0;
+                document.getElementById('duplicateRows').textContent = data.duplicate_rows || 0;
+            })
+            .catch(error => {
+                console.error('Error loading overview:', error);
+                alert('Error loading data. Please upload a dataset first.');
+                window.location.href = '/';
+            });
+
+        fetch('/api/current-file')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('File Error:', data.error);
+                    document.getElementById('currentFile').textContent = 'No file loaded';
+                    return;
+                }
+                document.getElementById('currentFile').textContent = data.filename || 'Unknown';
+            })
+            .catch(error => console.error('Error loading file info:', error));
+    </script>
+</body>
+</html>

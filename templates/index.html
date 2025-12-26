@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Washington State CPA Firms Analysis Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .nav-link {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-left: 4px solid white;
+        }
+        
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        th {
+            position: sticky;
+            top: 0;
+            background: #667eea;
+            color: white;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-6 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-chart-line text-4xl"></i>
+                    <div>
+                        <h1 class="text-3xl font-bold">CPA Firms Analytics</h1>
+                        <p class="text-sm opacity-90">Washington State Data Analysis Dashboard</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div id="current-file-info" class="bg-white/20 px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-file mr-2"></i>
+                        <span id="file-name">Loading...</span>
+                    </div>
+                    <button onclick="document.getElementById('file-upload').click()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition flex items-center space-x-2">
+                        <i class="fas fa-upload"></i>
+                        <span>Upload Dataset</span>
+                    </button>
+                    <button onclick="refreshData()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition flex items-center space-x-2">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Refresh</span>
+                    </button>
+                    <button onclick="resetDataset()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition flex items-center space-x-2">
+                        <i class="fas fa-redo"></i>
+                        <span>Reset</span>
+                    </button>
+                </div>
+                <input type="file" id="file-upload" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleFileUpload(event)">
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-6 py-8">
+        <!-- Statistics Cards -->
+        <div id="stats-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Stats will be loaded here -->
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="bg-white rounded-lg shadow-md mb-8 overflow-x-auto">
+            <div class="flex border-b">
+                <button class="nav-tab px-6 py-4 font-semibold text-gray-700 border-b-2 border-purple-600 active" onclick="showSection('overview')">
+                    <i class="fas fa-home mr-2"></i>Overview
+                </button>
+                <button class="nav-tab px-6 py-4 font-semibold text-gray-500 hover:text-gray-700 border-b-2 border-transparent" onclick="showSection('cities')">
+                    <i class="fas fa-city mr-2"></i>Top Cities
+                </button>
+                <button class="nav-tab px-6 py-4 font-semibold text-gray-500 hover:text-gray-700 border-b-2 border-transparent" onclick="showSection('business')">
+                    <i class="fas fa-briefcase mr-2"></i>Business Types
+                </button>
+                <button class="nav-tab px-6 py-4 font-semibold text-gray-500 hover:text-gray-700 border-b-2 border-transparent" onclick="showSection('trends')">
+                    <i class="fas fa-chart-line mr-2"></i>Trends
+                </button>
+                <button class="nav-tab px-6 py-4 font-semibold text-gray-500 hover:text-gray-700 border-b-2 border-transparent" onclick="showSection('analysis')">
+                    <i class="fas fa-analytics mr-2"></i>Advanced
+                </button>
+                <button class="nav-tab px-6 py-4 font-semibold text-gray-500 hover:text-gray-700 border-b-2 border-transparent" onclick="showSection('data')">
+                    <i class="fas fa-table mr-2"></i>Data Table
+                </button>
+                <button class="nav-tab px-6 py-4 font-semibold text-gray-500 hover:text-gray-700 border-b-2 border-transparent" onclick="showSection('cleaning')">
+                    <i class="fas fa-broom mr-2"></i>Data Cleaning
+                </button>
+            </div>
+        </div>
+
+        <!-- Content Sections -->
+        <div id="overview-section" class="section-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="chart-container fade-in">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-city mr-2 text-purple-600"></i>Top Cities Distribution</h3>
+                    <div id="top-cities-chart" class="flex justify-center items-center" style="min-height: 400px;">
+                        <div class="loading"></div>
+                    </div>
+                </div>
+                <div class="chart-container fade-in">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-briefcase mr-2 text-purple-600"></i>Business Types</h3>
+                    <div id="business-types-chart" class="flex justify-center items-center" style="min-height: 400px;">
+                        <div class="loading"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="cities-section" class="section-content hidden">
+            <div class="chart-container fade-in">
+                <h3 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-city mr-2 text-purple-600"></i>Top 20 Cities by CPA Firms</h3>
+                <div id="cities-detail-chart" class="flex justify-center items-center" style="min-height: 500px;">
+                    <div class="loading"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="business-section" class="section-content hidden">
+            <div class="chart-container fade-in">
+                <h3 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-briefcase mr-2 text-purple-600"></i>Business Type Distribution</h3>
+                <div id="business-detail-chart" class="flex justify-center items-center" style="min-height: 500px;">
+                    <div class="loading"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="trends-section" class="section-content hidden">
+            <div class="chart-container fade-in">
+                <h3 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-chart-line mr-2 text-purple-600"></i>Registration Trends Over Time</h3>
+                <div id="registration-trends-chart" class="flex justify-center items-center" style="min-height: 500px;">
+                    <div class="loading"></div>
+                </div>
+            </div>
+            <div class="chart-container fade-in">
+                <h3 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-map-marker-alt mr-2 text-purple-600"></i>In-State vs Out-of-State Comparison</h3>
+                <div id="location-comparison-chart" class="flex justify-center items-center" style="min-height: 500px;">
+                    <div class="loading"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="analysis-section" class="section-content hidden">
+            <div class="chart-container fade-in">
+                <h3 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-clock mr-2 text-purple-600"></i>Firm Lifespan Analysis</h3>
+                <div id="lifespan-chart" class="flex justify-center items-center" style="min-height: 500px;">
+                    <div class="loading"></div>
+                </div>
+            </div>
+            <div class="chart-container fade-in">
+                <h3 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-project-diagram mr-2 text-purple-600"></i>Correlation Matrix</h3>
+                <div id="correlation-chart" class="flex justify-center items-center" style="min-height: 500px;">
+                    <div class="loading"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="data-section" class="section-content hidden">
+            <div class="chart-container fade-in">
+                <h3 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-table mr-2 text-purple-600"></i>Dataset Preview (First 50 Rows)</h3>
+                <div id="data-table-container" class="table-container">
+                    <div class="flex justify-center items-center py-12">
+                        <div class="loading"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="cleaning-section" class="section-content hidden">
+            <!-- Main Upload Area -->
+            <div id="upload-area" class="chart-container fade-in text-center">
+                <div class="max-w-2xl mx-auto">
+                    <i class="fas fa-cloud-upload-alt text-6xl text-purple-600 mb-4"></i>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Upload Your Dataset for AI-Powered Cleaning</h3>
+                    <p class="text-gray-600 mb-6">Upload a CSV or Excel file, and our AI will automatically analyze and clean it for you.</p>
+                    
+                    <!-- Upload Drop Zone -->
+                    <div id="drop-zone" class="border-4 border-dashed border-purple-300 rounded-xl p-12 mb-6 hover:border-purple-500 transition cursor-pointer bg-purple-50">
+                        <input type="file" id="cleaning-file-upload" accept=".csv,.xlsx,.xls" class="hidden" onchange="handleCleaningFileUpload(event)">
+                        <div onclick="document.getElementById('cleaning-file-upload').click()">
+                            <i class="fas fa-file-upload text-5xl text-purple-600 mb-3"></i>
+                            <p class="text-lg font-semibold text-gray-700 mb-2">Click to upload or drag and drop</p>
+                            <p class="text-sm text-gray-500">CSV, XLSX, XLS files (up to 50MB)</p>
+                        </div>
+                    </div>
+                    
+                    <!-- File Info Display -->
+                    <div id="file-info-display" class="hidden bg-white border-2 border-green-500 rounded-lg p-6 mb-6">
+                        <div class="flex items-center justify-center space-x-4 mb-4">
+                            <i class="fas fa-file-excel text-4xl text-green-600"></i>
+                            <div class="text-left">
+                                <p class="font-bold text-lg text-gray-800" id="uploaded-filename">filename.csv</p>
+                                <p class="text-sm text-gray-600" id="uploaded-filesize">1.2 MB • 1000 rows</p>
+                            </div>
+                            <button onclick="clearUploadedFile()" class="text-red-500 hover:text-red-700">
+                                <i class="fas fa-times-circle text-2xl"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Start Button -->
+                        <button onclick="startCleaning()" id="start-cleaning-btn" class="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white px-8 py-4 rounded-lg font-bold text-lg hover:from-green-700 hover:to-blue-700 transition shadow-lg">
+                            <i class="fas fa-play-circle mr-2"></i>START CLEANING
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Processing Area -->
+            <div id="processing-area" class="hidden">
+                <div class="chart-container fade-in">
+                    <div class="max-w-3xl mx-auto">
+                        <!-- Progress Indicator -->
+                        <div class="text-center mb-6">
+                            <div class="inline-block">
+                                <i class="fas fa-spinner fa-spin text-6xl text-purple-600 mb-4"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-2">Processing Your Dataset...</h3>
+                            <p class="text-gray-600" id="processing-status">Analyzing data with AI...</p>
+                        </div>
+                        
+                        <!-- Progress Steps -->
+                        <div class="space-y-3 mb-6">
+                            <div class="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg" id="step-ai">
+                                <i class="fas fa-circle-notch fa-spin text-blue-600"></i>
+                                <span class="text-blue-800 font-medium">AI Analysis in progress...</span>
+                            </div>
+                            <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg opacity-50" id="step-clean">
+                                <i class="fas fa-circle text-gray-400"></i>
+                                <span class="text-gray-600">Cleaning data...</span>
+                            </div>
+                            <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg opacity-50" id="step-export">
+                                <i class="fas fa-circle text-gray-400"></i>
+                                <span class="text-gray-600">Generating Excel file...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Area -->
+            <div id="results-area" class="hidden">
+                <div class="chart-container fade-in">
+                    <div class="max-w-3xl mx-auto">
+                        <div class="text-center mb-6">
+                            <i class="fas fa-check-circle text-6xl text-green-600 mb-4"></i>
+                            <h3 class="text-3xl font-bold text-gray-800 mb-2">✨ Cleaning Complete!</h3>
+                            <p class="text-gray-600">Your dataset has been cleaned and is ready to download.</p>
+                        </div>
+
+                        <!-- Stats Cards -->
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="bg-blue-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-blue-600 font-medium mb-1">Original</p>
+                                <p class="text-2xl font-bold text-blue-900" id="result-original-size">1000 × 15</p>
+                            </div>
+                            <div class="bg-green-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-green-600 font-medium mb-1">Cleaned</p>
+                                <p class="text-2xl font-bold text-green-900" id="result-cleaned-size">950 × 14</p>
+                            </div>
+                        </div>
+
+                        <!-- AI Summary -->
+                        <div class="bg-purple-50 border-l-4 border-purple-500 p-4 mb-6">
+                            <h4 class="font-bold text-purple-900 mb-2"><i class="fas fa-robot mr-2"></i>AI Analysis Summary</h4>
+                            <p class="text-sm text-purple-800" id="result-ai-summary">Dataset analyzed successfully</p>
+                        </div>
+
+                        <!-- Cleaning Log -->
+                        <div class="bg-white border rounded-lg p-4 mb-6">
+                            <h4 class="font-bold text-gray-800 mb-3"><i class="fas fa-list mr-2"></i>Cleaning Operations</h4>
+                            <div id="result-cleaning-log" class="text-sm text-gray-700 space-y-2 max-h-60 overflow-y-auto">
+                                <!-- Log items will be inserted here -->
+                            </div>
+                        </div>
+
+                        <!-- Download Button -->
+                        <button onclick="downloadCleaned()" class="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-lg font-bold text-lg hover:from-purple-700 hover:to-blue-700 transition shadow-lg mb-4">
+                            <i class="fas fa-download mr-2"></i>DOWNLOAD CLEANED EXCEL FILE
+                        </button>
+
+                        <!-- Start Over Button -->
+                        <button onclick="resetCleaning()" class="w-full bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition">
+                            <i class="fas fa-redo mr-2"></i>Clean Another File
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-6 mt-12">
+        <div class="container mx-auto px-6 text-center">
+            <p class="text-sm">&copy; 2025 Washington State CPA Firms Analysis. All rights reserved.</p>
+            <p class="text-xs mt-2 text-gray-400">Powered by Python, Flask, Pandas & Tailwind CSS</p>
+        </div>
+    </footer>
+
+    <script>
+        // Global state
+        let currentSection = 'overview';
+        let dataCache = {};
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCurrentFileInfo();
+            loadOverview();
+            loadTopCities();
+            loadBusinessTypes();
+        });
+
+        // Load current file info
+        async function loadCurrentFileInfo() {
+            try {
+                const response = await fetch('/api/current-file');
+                const data = await response.json();
+                document.getElementById('file-name').textContent = `${data.filename} (${data.rows} rows)`;
+            } catch (error) {
+                console.error('Error loading file info:', error);
+                document.getElementById('file-name').textContent = 'Default Dataset';
+            }
+        }
+
+        // Handle file upload
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Show loading
+            const fileNameEl = document.getElementById('file-name');
+            const originalText = fileNameEl.textContent;
+            fileNameEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Uploading...';
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Show success message
+                    showNotification(`✅ ${data.message}\nRows: ${data.rows} | Columns: ${data.columns}`, 'success');
+                    
+                    // Clear cache and reload
+                    dataCache = {};
+                    await loadCurrentFileInfo();
+                    await loadOverview();
+                    
+                    if (currentSection === 'overview') {
+                        loadTopCities();
+                        loadBusinessTypes();
+                    } else {
+                        // Reload current section
+                        const sectionMap = {
+                            'cities': loadCitiesDetail,
+                            'business': loadBusinessDetail,
+                            'trends': () => { loadRegistrationTrends(); loadLocationComparison(); },
+                            'analysis': () => { loadLifespanAnalysis(); loadCorrelationMatrix(); },
+                            'data': loadDataTable
+                        };
+                        if (sectionMap[currentSection]) {
+                            sectionMap[currentSection]();
+                        }
+                    }
+                } else {
+                    showNotification(`❌ ${data.error}`, 'error');
+                    fileNameEl.textContent = originalText;
+                }
+            } catch (error) {
+                showNotification(`❌ Upload failed: ${error.message}`, 'error');
+                fileNameEl.textContent = originalText;
+            }
+
+            // Reset file input
+            event.target.value = '';
+        }
+
+        // Reset to default dataset
+        async function resetDataset() {
+            if (!confirm('Reset to default dataset? This will clear the current uploaded file.')) {
+                return;
+            }
+
+            const fileNameEl = document.getElementById('file-name');
+            fileNameEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Resetting...';
+
+            try {
+                const response = await fetch('/api/reset', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showNotification(`✅ ${data.message}`, 'success');
+                    
+                    // Clear cache and reload
+                    dataCache = {};
+                    await loadCurrentFileInfo();
+                    await loadOverview();
+                    
+                    if (currentSection === 'overview') {
+                        loadTopCities();
+                        loadBusinessTypes();
+                    }
+                } else {
+                    showNotification(`❌ ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showNotification(`❌ Reset failed: ${error.message}`, 'error');
+            } finally {
+                fileNameEl.innerHTML = '<i class="fas fa-file-alt mr-2"></i><span id="file-text">Washington_State_CPA__Certified_Public_Accountant__Firms_20250412.csv</span>';
+            }
+        }
+
+        // Analyze with AI
+        async function analyzeWithAI() {
+            const btn = document.getElementById('analyze-btn');
+            const resultDiv = document.getElementById('ai-analysis-result');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Analyzing with AI...';
+            resultDiv.classList.add('hidden');
+            
+            try {
+                const response = await fetch('/api/analyze-cleaning', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Display AI analysis
+                    const plan = data.cleaning_plan;
+                    
+                    document.getElementById('ai-summary').textContent = plan.summary || 'Analysis complete';
+                    
+                    // Display issues
+                    const issuesContainer = document.getElementById('ai-issues-container');
+                    if (plan.issues && plan.issues.length > 0) {
+                        issuesContainer.innerHTML = plan.issues.map(issue => `
+                            <div class="p-3 mb-2 border-l-4 ${
+                                issue.priority === 'High' ? 'border-red-500 bg-red-50' :
+                                issue.priority === 'Medium' ? 'border-yellow-500 bg-yellow-50' :
+                                'border-gray-500 bg-gray-50'
+                            }">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <h5 class="font-bold text-sm">${issue.column || 'General'}</h5>
+                                        <p class="text-xs mt-1">${issue.issue}</p>
+                                        <p class="text-xs mt-1 font-semibold">Action: ${issue.action}</p>
+                                    </div>
+                                    <span class="px-2 py-1 text-xs font-bold rounded ${
+                                        issue.priority === 'High' ? 'bg-red-200 text-red-800' :
+                                        issue.priority === 'Medium' ? 'bg-yellow-200 text-yellow-800' :
+                                        'bg-gray-200 text-gray-800'
+                                    }">${issue.priority}</span>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        issuesContainer.innerHTML = '<p class="text-sm text-gray-600">No specific issues detected.</p>';
+                    }
+                    
+                    // Display recommendations
+                    const recList = document.getElementById('ai-recommendations');
+                    if (plan.recommendations && plan.recommendations.length > 0) {
+                        recList.innerHTML = plan.recommendations.map(rec => `<li class="mb-1">${rec}</li>`).join('');
+                    } else {
+                        recList.innerHTML = '<li>Your dataset looks good!</li>';
+                    }
+                    
+                    resultDiv.classList.remove('hidden');
+                    showNotification('✅ AI analysis completed successfully!', 'success');
+                } else {
+                    showNotification(`❌ ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showNotification(`❌ Analysis failed: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-brain mr-2"></i>Analyze Dataset with AI';
+            }
+        }
+
+        // Clean dataset
+        async function cleanDataset() {
+            const btn = document.getElementById('clean-btn');
+            const resultsDiv = document.getElementById('cleaning-results');
+            
+            // Gather options
+            const options = {
+                remove_duplicates: document.getElementById('remove_duplicates').checked,
+                missing_strategy: document.getElementById('missing_strategy').value,
+                trim_whitespace: document.getElementById('trim_whitespace').checked,
+                standardize_columns: document.getElementById('standardize_columns').checked,
+                convert_types: document.getElementById('convert_types').checked,
+                remove_outliers: document.getElementById('remove_outliers').checked
+            };
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Cleaning Dataset...';
+            resultsDiv.classList.add('hidden');
+            
+            try {
+                const response = await fetch('/api/clean-dataset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ options })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Display results
+                    document.getElementById('cleaning-stats').innerHTML = `
+                        <p><strong>Original:</strong> ${data.original_shape[0]} rows × ${data.original_shape[1]} columns</p>
+                        <p><strong>Cleaned:</strong> ${data.cleaned_shape[0]} rows × ${data.cleaned_shape[1]} columns</p>
+                        <p class="text-red-600"><strong>Removed:</strong> ${data.rows_removed} rows, ${data.columns_removed} columns</p>
+                    `;
+                    
+                    document.getElementById('cleaning-log').innerHTML = data.cleaning_log.map(log => 
+                        `<p>• ${log}</p>`
+                    ).join('');
+                    
+                    resultsDiv.classList.remove('hidden');
+                    showNotification('✅ Dataset cleaned successfully!', 'success');
+                } else {
+                    showNotification(`❌ ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showNotification(`❌ Cleaning failed: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-broom mr-2"></i>Clean Dataset';
+            }
+        }
+
+
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                info: 'bg-blue-500'
+            };
+
+            const notification = document.createElement('div');
+            notification.className = `fixed top-20 right-6 ${colors[type]} text-white px-6 py-4 rounded-lg shadow-lg z-50 max-w-md`;
+            notification.style.animation = 'slideIn 0.3s ease-out';
+            notification.innerHTML = `
+                <div class="flex items-start space-x-3">
+                    <div class="flex-1 whitespace-pre-line">${message}</div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-white hover:text-gray-200">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+
+        // Add animation styles
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(400px); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(400px); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Show specific section
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.section-content').forEach(el => {
+                el.classList.add('hidden');
+            });
+            
+            // Update nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active', 'border-purple-600', 'text-gray-700');
+                tab.classList.add('text-gray-500', 'border-transparent');
+            });
+            
+            // Show selected section
+            document.getElementById(section + '-section').classList.remove('hidden');
+            event.target.closest('.nav-tab').classList.add('active', 'border-purple-600', 'text-gray-700');
+            event.target.closest('.nav-tab').classList.remove('text-gray-500', 'border-transparent');
+            
+            currentSection = section;
+            
+            // Load data if not cached
+            switch(section) {
+                case 'cities':
+                    if (!dataCache.citiesDetail) loadCitiesDetail();
+                    break;
+                case 'business':
+                    if (!dataCache.businessDetail) loadBusinessDetail();
+                    break;
+                case 'trends':
+                    if (!dataCache.trends) {
+                        loadRegistrationTrends();
+                        loadLocationComparison();
+                    }
+                    break;
+                case 'analysis':
+                    if (!dataCache.analysis) {
+                        loadLifespanAnalysis();
+                        loadCorrelationMatrix();
+                    }
+                    break;
+                case 'data':
+                    if (!dataCache.table) loadDataTable();
+                    break;
+                case 'cleaning':
+                    // Cleaning section doesn't need pre-loading
+                    break;
+            }
+        }
+
+        // Handle file upload for cleaning
+        async function handleCleaningFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Show uploading state
+            showNotification('📤 Uploading file...', 'info');
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}`);
+                }
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Show file info
+                    document.getElementById('uploaded-filename').textContent = file.name;
+                    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                    document.getElementById('uploaded-filesize').textContent = `${fileSizeMB} MB • ${data.rows} rows × ${data.columns} columns`;
+                    
+                    document.getElementById('drop-zone').classList.add('hidden');
+                    document.getElementById('file-info-display').classList.remove('hidden');
+                    
+                    showNotification(`✅ ${file.name} uploaded successfully!`, 'success');
+                } else {
+                    showNotification(`❌ ${data.error || 'Upload failed'}`, 'error');
+                    event.target.value = '';
+                }
+            } catch (error) {
+                showNotification(`❌ Upload failed: ${error.message}`, 'error');
+                event.target.value = '';
+            }
+        }
+
+        // Clear uploaded file
+        function clearUploadedFile() {
+            document.getElementById('drop-zone').classList.remove('hidden');
+            document.getElementById('file-info-display').classList.add('hidden');
+            document.getElementById('cleaning-file-upload').value = '';
+        }
+
+        // Start cleaning process
+        async function startCleaning() {
+            // Hide upload area, show processing
+            document.getElementById('upload-area').classList.add('hidden');
+            document.getElementById('processing-area').classList.remove('hidden');
+            
+            try {
+                // Step 1: AI Analysis
+                document.getElementById('processing-status').textContent = 'Analyzing data with AI...';
+                document.getElementById('step-ai').innerHTML = '<i class="fas fa-circle-notch fa-spin text-blue-600"></i><span class="text-blue-800 font-medium">AI Analysis in progress...</span>';
+                
+                const analysisResponse = await fetch('/api/analyze-cleaning', {
+                    method: 'POST'
+                });
+                const analysisData = await analysisResponse.json();
+                
+                if (!analysisResponse.ok) {
+                    throw new Error(analysisData.error || 'AI analysis failed');
+                }
+                
+                // Mark AI step complete
+                document.getElementById('step-ai').innerHTML = '<i class="fas fa-check-circle text-green-600"></i><span class="text-green-800 font-medium">AI Analysis complete</span>';
+                
+                // Step 2: Clean Dataset
+                document.getElementById('processing-status').textContent = 'Cleaning your dataset...';
+                document.getElementById('step-clean').classList.remove('opacity-50');
+                document.getElementById('step-clean').innerHTML = '<i class="fas fa-circle-notch fa-spin text-blue-600"></i><span class="text-blue-800 font-medium">Cleaning data...</span>';
+                
+                await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for UX
+                
+                const cleaningOptions = {
+                    remove_duplicates: true,
+                    missing_strategy: 'drop_rows',
+                    trim_whitespace: true,
+                    standardize_columns: true,
+                    convert_types: true,
+                    remove_outliers: false
+                };
+                
+                const cleanResponse = await fetch('/api/clean-dataset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ options: cleaningOptions })
+                });
+                const cleanData = await cleanResponse.json();
+                
+                if (!cleanResponse.ok) {
+                    throw new Error(cleanData.error || 'Cleaning failed');
+                }
+                
+                // Mark clean step complete
+                document.getElementById('step-clean').innerHTML = '<i class="fas fa-check-circle text-green-600"></i><span class="text-green-800 font-medium">Data cleaned</span>';
+                
+                // Step 3: Export
+                document.getElementById('processing-status').textContent = 'Generating Excel file...';
+                document.getElementById('step-export').classList.remove('opacity-50');
+                document.getElementById('step-export').innerHTML = '<i class="fas fa-circle-notch fa-spin text-blue-600"></i><span class="text-blue-800 font-medium">Generating Excel file...</span>';
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                document.getElementById('step-export').innerHTML = '<i class="fas fa-check-circle text-green-600"></i><span class="text-green-800 font-medium">Excel file ready</span>';
+                
+                // Show results
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                document.getElementById('processing-area').classList.add('hidden');
+                document.getElementById('results-area').classList.remove('hidden');
+                
+                // Populate results
+                document.getElementById('result-original-size').textContent = `${cleanData.original_shape[0]} × ${cleanData.original_shape[1]}`;
+                document.getElementById('result-cleaned-size').textContent = `${cleanData.cleaned_shape[0]} × ${cleanData.cleaned_shape[1]}`;
+                document.getElementById('result-ai-summary').textContent = analysisData.cleaning_plan.summary || 'Dataset analyzed and cleaned successfully';
+                
+                const logHtml = cleanData.cleaning_log.map(log => 
+                    `<div class="flex items-start space-x-2">
+                        <i class="fas fa-check text-green-600 mt-1"></i>
+                        <span>${log}</span>
+                    </div>`
+                ).join('');
+                document.getElementById('result-cleaning-log').innerHTML = logHtml;
+                
+                showNotification('🎉 Dataset cleaned successfully!', 'success');
+                
+            } catch (error) {
+                document.getElementById('processing-area').classList.add('hidden');
+                document.getElementById('upload-area').classList.remove('hidden');
+                showNotification(`❌ Cleaning failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Reset cleaning workflow
+        function resetCleaning() {
+            document.getElementById('results-area').classList.add('hidden');
+            document.getElementById('upload-area').classList.remove('hidden');
+            document.getElementById('drop-zone').classList.remove('hidden');
+            document.getElementById('file-info-display').classList.add('hidden');
+            document.getElementById('cleaning-file-upload').value = '';
+            
+            // Reset processing steps
+            document.getElementById('step-ai').innerHTML = '<i class="fas fa-circle text-gray-400"></i><span class="text-gray-600">AI Analysis in progress...</span>';
+            document.getElementById('step-ai').classList.remove('opacity-50');
+            document.getElementById('step-clean').innerHTML = '<i class="fas fa-circle text-gray-400"></i><span class="text-gray-600">Cleaning data...</span>';
+            document.getElementById('step-clean').classList.add('opacity-50');
+            document.getElementById('step-export').innerHTML = '<i class="fas fa-circle text-gray-400"></i><span class="text-gray-600">Generating Excel file...</span>';
+            document.getElementById('step-export').classList.add('opacity-50');
+        }
+
+        // Download cleaned dataset
+        function downloadCleaned() {
+            window.location.href = '/api/download-cleaned';
+            showNotification('⬇️ Download started!', 'info');
+        }
+
+        // Drag and drop functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropZone = document.getElementById('drop-zone');
+            
+            if (dropZone) {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, preventDefaults, false);
+                });
+
+                function preventDefaults(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, () => {
+                        dropZone.classList.add('border-purple-600', 'bg-purple-100');
+                    }, false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, () => {
+                        dropZone.classList.remove('border-purple-600', 'bg-purple-100');
+                    }, false);
+                });
+
+                dropZone.addEventListener('drop', function(e) {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    
+                    if (files.length > 0) {
+                        document.getElementById('cleaning-file-upload').files = files;
+                        handleCleaningFileUpload({ target: { files: files } });
+                    }
+                }, false);
+            }
+        });
+
+        // Load overview statistics
+        async function loadOverview() {
+            try {
+                const response = await fetch('/api/overview');
+                const data = await response.json();
+                
+                const statsHTML = `
+                    <div class="stat-card card-hover fade-in">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm font-medium">Total Firms</p>
+                                <p class="text-3xl font-bold text-gray-800 mt-2">${data.total_firms.toLocaleString()}</p>
+                            </div>
+                            <div class="bg-purple-100 p-4 rounded-full">
+                                <i class="fas fa-building text-purple-600 text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card card-hover fade-in">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm font-medium">Cities</p>
+                                <p class="text-3xl font-bold text-gray-800 mt-2">${data.cities.toLocaleString()}</p>
+                            </div>
+                            <div class="bg-blue-100 p-4 rounded-full">
+                                <i class="fas fa-city text-blue-600 text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card card-hover fade-in">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm font-medium">Business Types</p>
+                                <p class="text-3xl font-bold text-gray-800 mt-2">${data.business_types.toLocaleString()}</p>
+                            </div>
+                            <div class="bg-green-100 p-4 rounded-full">
+                                <i class="fas fa-briefcase text-green-600 text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card card-hover fade-in">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm font-medium">Data Quality</p>
+                                <p class="text-3xl font-bold text-gray-800 mt-2">${((data.rows - data.missing_values) / data.rows * 100).toFixed(1)}%</p>
+                            </div>
+                            <div class="bg-yellow-100 p-4 rounded-full">
+                                <i class="fas fa-check-circle text-yellow-600 text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('stats-container').innerHTML = statsHTML;
+            } catch (error) {
+                console.error('Error loading overview:', error);
+            }
+        }
+
+        // Load top cities chart
+        async function loadTopCities() {
+            try {
+                const response = await fetch('/api/top-cities');
+                const data = await response.json();
+                dataCache.topCities = data;
+                document.getElementById('top-cities-chart').innerHTML = 
+                    `<img src="data:image/png;base64,${data.image}" class="w-full" alt="Top Cities Chart">`;
+            } catch (error) {
+                console.error('Error loading top cities:', error);
+                document.getElementById('top-cities-chart').innerHTML = 
+                    '<p class="text-red-500">Error loading chart</p>';
+            }
+        }
+
+        // Load business types chart
+        async function loadBusinessTypes() {
+            try {
+                const response = await fetch('/api/business-types');
+                const data = await response.json();
+                dataCache.businessTypes = data;
+                document.getElementById('business-types-chart').innerHTML = 
+                    `<img src="data:image/png;base64,${data.image}" class="w-full" alt="Business Types Chart">`;
+            } catch (error) {
+                console.error('Error loading business types:', error);
+                document.getElementById('business-types-chart').innerHTML = 
+                    '<p class="text-red-500">Error loading chart</p>';
+            }
+        }
+
+        // Load cities detail
+        async function loadCitiesDetail() {
+            try {
+                if (dataCache.topCities) {
+                    document.getElementById('cities-detail-chart').innerHTML = 
+                        `<img src="data:image/png;base64,${dataCache.topCities.image}" class="w-full" alt="Cities Detail Chart">`;
+                    dataCache.citiesDetail = true;
+                } else {
+                    const response = await fetch('/api/top-cities');
+                    const data = await response.json();
+                    document.getElementById('cities-detail-chart').innerHTML = 
+                        `<img src="data:image/png;base64,${data.image}" class="w-full" alt="Cities Detail Chart">`;
+                    dataCache.citiesDetail = true;
+                }
+            } catch (error) {
+                console.error('Error loading cities detail:', error);
+            }
+        }
+
+        // Load business detail
+        async function loadBusinessDetail() {
+            try {
+                if (dataCache.businessTypes) {
+                    document.getElementById('business-detail-chart').innerHTML = 
+                        `<img src="data:image/png;base64,${dataCache.businessTypes.image}" class="w-full" alt="Business Detail Chart">`;
+                    dataCache.businessDetail = true;
+                } else {
+                    const response = await fetch('/api/business-types');
+                    const data = await response.json();
+                    document.getElementById('business-detail-chart').innerHTML = 
+                        `<img src="data:image/png;base64,${data.image}" class="w-full" alt="Business Detail Chart">`;
+                    dataCache.businessDetail = true;
+                }
+            } catch (error) {
+                console.error('Error loading business detail:', error);
+            }
+        }
+
+        // Load registration trends
+        async function loadRegistrationTrends() {
+            try {
+                const response = await fetch('/api/registration-trends');
+                const data = await response.json();
+                document.getElementById('registration-trends-chart').innerHTML = 
+                    `<img src="data:image/png;base64,${data.image}" class="w-full" alt="Registration Trends Chart">`;
+                dataCache.trends = true;
+            } catch (error) {
+                console.error('Error loading registration trends:', error);
+            }
+        }
+
+        // Load location comparison
+        async function loadLocationComparison() {
+            try {
+                const response = await fetch('/api/location-comparison');
+                const data = await response.json();
+                document.getElementById('location-comparison-chart').innerHTML = 
+                    `<img src="data:image/png;base64,${data.image}" class="w-full" alt="Location Comparison Chart">`;
+            } catch (error) {
+                console.error('Error loading location comparison:', error);
+            }
+        }
+
+        // Load lifespan analysis
+        async function loadLifespanAnalysis() {
+            try {
+                const response = await fetch('/api/lifespan-analysis');
+                const data = await response.json();
+                document.getElementById('lifespan-chart').innerHTML = 
+                    `<img src="data:image/png;base64,${data.image}" class="w-full" alt="Lifespan Chart">`;
+                dataCache.analysis = true;
+            } catch (error) {
+                console.error('Error loading lifespan analysis:', error);
+            }
+        }
+
+        // Load correlation matrix
+        async function loadCorrelationMatrix() {
+            try {
+                const response = await fetch('/api/correlation-matrix');
+                const data = await response.json();
+                document.getElementById('correlation-chart').innerHTML = 
+                    `<img src="data:image/png;base64,${data.image}" class="w-full" alt="Correlation Matrix">`;
+            } catch (error) {
+                console.error('Error loading correlation matrix:', error);
+            }
+        }
+
+        // Load data table
+        async function loadDataTable() {
+            try {
+                const response = await fetch('/api/data-table');
+                const data = await response.json();
+                
+                let tableHTML = `
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr>
+                                ${data.columns.map(col => `<th class="px-4 py-3 text-left">${col}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.data.map((row, idx) => `
+                                <tr class="${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-purple-50">
+                                    ${row.map(cell => `<td class="px-4 py-3 border-t">${cell}</td>`).join('')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                document.getElementById('data-table-container').innerHTML = tableHTML;
+                dataCache.table = true;
+            } catch (error) {
+                console.error('Error loading data table:', error);
+            }
+        }
+
+        // Refresh all data
+        function refreshData() {
+            dataCache = {};
+            loadOverview();
+            
+            if (currentSection === 'overview') {
+                loadTopCities();
+                loadBusinessTypes();
+            } else {
+                showSection(currentSection);
+            }
+            
+            // Show refresh notification
+            alert('Dashboard refreshed successfully!');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clean Data - Data Science Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="gradient-bg py-6 shadow-lg mb-8">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-white">
+                    <i class="fas fa-broom mr-2"></i>Data Cleaning
+                </h1>
+                <a href="/" class="bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-purple-50 transition">
+                    <i class="fas fa-upload mr-2"></i>Upload New File
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Current File Info -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="text-2xl font-bold mb-6"><i class="fas fa-file mr-2 text-purple-600"></i>Current Dataset</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="text-center p-4 bg-purple-50 rounded-lg">
+                    <div class="text-3xl font-bold text-purple-600" id="originalRows">-</div>
+                    <div class="text-sm text-gray-600">Total Rows</div>
+                </div>
+                <div class="text-center p-4 bg-blue-50 rounded-lg">
+                    <div class="text-3xl font-bold text-blue-600" id="originalColumns">-</div>
+                    <div class="text-sm text-gray-600">Total Columns</div>
+                </div>
+                <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                    <div class="text-3xl font-bold text-yellow-600" id="missingValues">-</div>
+                    <div class="text-sm text-gray-600">Missing Values</div>
+                </div>
+                <div class="text-center p-4 bg-red-50 rounded-lg">
+                    <div class="text-3xl font-bold text-red-600" id="duplicates">-</div>
+                    <div class="text-sm text-gray-600">Duplicates</div>
+                </div>
+            </div>
+            <div class="text-center">
+                <p class="text-gray-600">File: <span id="fileName" class="font-semibold">-</span></p>
+            </div>
+        </div>
+
+        <!-- Cleaning Options -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="text-2xl font-bold mb-6"><i class="fas fa-cog mr-2 text-purple-600"></i>Cleaning Options</h2>
+            
+            <div class="space-y-6">
+                <!-- Remove Duplicates -->
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                        <h3 class="font-bold text-lg">Remove Duplicate Rows</h3>
+                        <p class="text-sm text-gray-600">Remove identical rows from the dataset</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="removeDuplicates" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+
+                <!-- Handle Missing Values -->
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <h3 class="font-bold text-lg mb-3">Handle Missing Values</h3>
+                    <select id="missingStrategy" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600">
+                        <option value="drop_rows">Drop rows with ALL values missing (Recommended)</option>
+                        <option value="drop_columns">Drop columns with >50% missing values</option>
+                        <option value="fill_mean">Fill numeric columns with mean</option>
+                        <option value="fill_median">Fill numeric columns with median</option>
+                        <option value="fill_mode">Fill all columns with mode (most frequent)</option>
+                    </select>
+                </div>
+
+                <!-- Trim Whitespace -->
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                        <h3 class="font-bold text-lg">Trim Whitespace</h3>
+                        <p class="text-sm text-gray-600">Remove leading and trailing spaces from text</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="trimWhitespace" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+
+                <!-- Standardize Column Names -->
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                        <h3 class="font-bold text-lg">Standardize Column Names</h3>
+                        <p class="text-sm text-gray-600">Convert to lowercase and replace spaces with underscores</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="standardizeColumns" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Clean Button -->
+            <div class="mt-8 text-center">
+                <button onclick="cleanData()" id="cleanButton" class="bg-gradient-to-r from-purple-600 to-purple-800 text-white px-8 py-4 rounded-lg text-lg font-bold hover:from-purple-700 hover:to-purple-900 transition shadow-lg">
+                    <i class="fas fa-magic mr-2"></i>Clean Data & Download Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- Cleaning Progress -->
+        <div id="cleaningProgress" class="bg-white rounded-xl shadow-lg p-8 mb-8 hidden">
+            <div class="text-center">
+                <div class="loading mx-auto mb-4"></div>
+                <h3 class="text-xl font-bold mb-2">Cleaning your data...</h3>
+                <p class="text-gray-600">This may take a few moments</p>
+            </div>
+        </div>
+
+        <!-- Cleaning Results -->
+        <div id="cleaningResults" class="bg-white rounded-xl shadow-lg p-8 mb-8 hidden">
+            <h2 class="text-2xl font-bold mb-6 text-green-600">
+                <i class="fas fa-check-circle mr-2"></i>Data Cleaned Successfully!
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                    <div class="text-3xl font-bold text-green-600" id="cleanedRows">-</div>
+                    <div class="text-sm text-gray-600">Cleaned Rows</div>
+                </div>
+                <div class="text-center p-4 bg-red-50 rounded-lg">
+                    <div class="text-3xl font-bold text-red-600" id="rowsRemoved">-</div>
+                    <div class="text-sm text-gray-600">Rows Removed</div>
+                </div>
+                <div class="text-center p-4 bg-blue-50 rounded-lg">
+                    <div class="text-3xl font-bold text-blue-600" id="columnsRemoved">-</div>
+                    <div class="text-sm text-gray-600">Columns Removed</div>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                <h3 class="font-bold mb-2">Cleaning Log:</h3>
+                <ul id="cleaningLog" class="list-disc list-inside text-sm text-gray-700 space-y-1">
+                    <!-- Will be populated dynamically -->
+                </ul>
+            </div>
+
+            <div class="flex justify-center space-x-4">
+                <button onclick="downloadCleanedData()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition">
+                    <i class="fas fa-download mr-2"></i>Download Cleaned Excel
+                </button>
+                <button onclick="goToDashboard()" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition">
+                    <i class="fas fa-chart-line mr-2"></i>Continue to Analysis Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load current file info
+        Promise.all([
+            fetch('/api/current-file').then(r => r.json()),
+            fetch('/api/overview').then(r => r.json())
+        ])
+        .then(([fileData, overviewData]) => {
+            document.getElementById('fileName').textContent = fileData.filename || 'Unknown';
+            document.getElementById('originalRows').textContent = overviewData.rows || fileData.rows || 0;
+            document.getElementById('originalColumns').textContent = overviewData.columns || fileData.columns || 0;
+            document.getElementById('missingValues').textContent = overviewData.missing_values || 0;
+            document.getElementById('duplicates').textContent = overviewData.duplicate_rows || 0;
+        })
+        .catch(error => {
+            console.error('Error loading data:', error);
+            alert('Error loading dataset information. Please try uploading again.');
+        });
+
+        function cleanData() {
+            const options = {
+                remove_duplicates: document.getElementById('removeDuplicates').checked,
+                missing_strategy: document.getElementById('missingStrategy').value,
+                trim_whitespace: document.getElementById('trimWhitespace').checked,
+                standardize_columns: document.getElementById('standardizeColumns').checked
+            };
+
+            // Hide options, show progress
+            document.getElementById('cleanButton').disabled = true;
+            document.getElementById('cleaningProgress').classList.remove('hidden');
+            document.getElementById('cleaningResults').classList.add('hidden');
+
+            fetch('/api/clean-dataset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ options })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('cleaningProgress').classList.add('hidden');
+                
+                if (data.error) {
+                    alert('Error cleaning data: ' + data.error);
+                    document.getElementById('cleanButton').disabled = false;
+                    return;
+                }
+
+                // Show results
+                document.getElementById('cleaningResults').classList.remove('hidden');
+                document.getElementById('cleanedRows').textContent = data.cleaned_shape[0];
+                document.getElementById('rowsRemoved').textContent = data.rows_removed;
+                document.getElementById('columnsRemoved').textContent = data.columns_removed;
+
+                // Show cleaning log
+                const logEl = document.getElementById('cleaningLog');
+                logEl.innerHTML = '';
+                data.cleaning_log.forEach(log => {
+                    const li = document.createElement('li');
+                    li.textContent = log;
+                    logEl.appendChild(li);
+                });
+
+                // Scroll to results
+                document.getElementById('cleaningResults').scrollIntoView({ behavior: 'smooth' });
+            })
+            .catch(error => {
+                document.getElementById('cleaningProgress').classList.add('hidden');
+                alert('Error cleaning data: ' + error.message);
+                document.getElementById('cleanButton').disabled = false;
+            });
+        }
+
+        function downloadCleanedData() {
+            window.location.href = '/api/download-cleaned';
+        }
+
+        function goToDashboard() {
+            window.location.href = '/dashboard';
+        }
+    </script>
+</body>
+</html>

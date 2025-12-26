@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Box Plot - Data Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .loading { display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(0,0,0,.1); border-radius: 50%; border-top-color: #667eea; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #chartImage { max-width: 100%; height: auto; max-height: 70vh; object-fit: contain; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="gradient-bg py-6 shadow-lg mb-8">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-white">
+                    <i class="fas fa-box mr-2"></i>Box Plot - Outlier Detection
+                </h1>
+                <a href="/dashboard" class="bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-purple-50 transition">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-xl shadow-lg p-8">
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Select Numeric Column:</label>
+                <select id="columnSelect" class="w-full md:w-1/2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600">
+                    <option value="">Loading columns...</option>
+                </select>
+            </div>
+
+            <div id="loadingDiv" class="text-center py-12">
+                <div class="loading mx-auto mb-4"></div>
+                <p class="text-gray-600">Generating box plot...</p>
+            </div>
+
+            <div id="chartContainer" class="hidden">
+                <div class="flex justify-center mb-4">
+                    <img id="chartImage" class="rounded-lg shadow-lg" alt="Box Plot">
+                </div>
+                <div class="mt-6 bg-gray-50 p-6 rounded-lg">
+                    <h3 class="text-xl font-bold mb-4">Outlier Analysis</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="text-center p-4 bg-red-50 rounded-lg">
+                            <p class="text-2xl font-bold text-red-600" id="outliersCount">-</p>
+                            <p class="text-sm text-gray-600">Outliers Found</p>
+                        </div>
+                        <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                            <p class="text-2xl font-bold text-yellow-600" id="outliersPercent">-</p>
+                            <p class="text-sm text-gray-600">Percentage</p>
+                        </div>
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <p class="text-2xl font-bold text-blue-600" id="median">-</p>
+                            <p class="text-sm text-gray-600">Median</p>
+                        </div>
+                        <div class="text-center p-4 bg-green-50 rounded-lg">
+                            <p class="text-2xl font-bold text-green-600" id="iqr">-</p>
+                            <p class="text-sm text-gray-600">IQR</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="errorDiv" class="hidden text-center py-12 text-red-600"></div>
+        </div>
+    </div>
+
+    <script>
+        fetch('/api/numeric-columns')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+                
+                const columns = data.columns || [];
+                
+                if (columns.length === 0) {
+                    document.getElementById('loadingDiv').classList.add('hidden');
+                    document.getElementById('errorDiv').classList.remove('hidden');
+                    document.getElementById('errorDiv').textContent = 'Error: No numeric columns found in dataset.';
+                    return;
+                }
+                
+                const select = document.getElementById('columnSelect');
+                select.innerHTML = '<option value="">-- Select a column --</option>';
+                columns.forEach(col => {
+                    const option = document.createElement('option');
+                    option.value = col;
+                    option.textContent = col;
+                    select.appendChild(option);
+                });
+                
+                if (columns.length > 0) {
+                    select.value = columns[0];
+                    loadChart(columns[0]);
+                }
+            })
+            .catch(error => {
+                document.getElementById('loadingDiv').classList.add('hidden');
+                document.getElementById('errorDiv').classList.remove('hidden');
+                document.getElementById('errorDiv').textContent = 'Error loading columns: ' + error.message;
+            });
+
+        document.getElementById('columnSelect').addEventListener('change', (e) => {
+            if (e.target.value) loadChart(e.target.value);
+        });
+
+        function loadChart(column) {
+            document.getElementById('loadingDiv').classList.remove('hidden');
+            document.getElementById('chartContainer').classList.add('hidden');
+            document.getElementById('errorDiv').classList.add('hidden');
+
+            fetch(`/api/visualization/boxplot?column=${encodeURIComponent(column)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) throw new Error(data.error);
+                    
+                    document.getElementById('chartImage').src = 'data:image/png;base64,' + data.image;
+                    document.getElementById('outliersCount').textContent = data.outliers_count;
+                    document.getElementById('outliersPercent').textContent = data.outliers_percentage + '%';
+                    document.getElementById('median').textContent = data.stats.median.toFixed(2);
+                    document.getElementById('iqr').textContent = data.stats.IQR.toFixed(2);
+                    
+                    document.getElementById('loadingDiv').classList.add('hidden');
+                    document.getElementById('chartContainer').classList.remove('hidden');
+                })
+                .catch(error => {
+                    document.getElementById('loadingDiv').classList.add('hidden');
+                    document.getElementById('errorDiv').classList.remove('hidden');
+                    document.getElementById('errorDiv').textContent = 'Error: ' + error.message;
+                });
+        }
+    </script>
+</body>
+</html>

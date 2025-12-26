@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Table - Data Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .table-container { max-height: 600px; overflow-y: auto; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="gradient-bg py-6 shadow-lg mb-8">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-white">
+                    <i class="fas fa-table mr-2"></i>Data Table View
+                </h1>
+                <a href="/dashboard" class="bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-purple-50 transition">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-xl shadow-lg p-8">
+            <div class="mb-4 flex justify-between items-center">
+                <p class="text-gray-600">Showing first <span id="rowCount" class="font-bold">-</span> rows</p>
+            </div>
+
+            <div class="table-container">
+                <table class="w-full text-sm border-collapse" id="dataTable">
+                    <thead class="bg-gray-100 sticky top-0">
+                        <tr id="tableHeader">
+                            <!-- Will be populated dynamically -->
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="loadingDiv" class="text-center py-12">
+                <p class="text-gray-600">Loading data...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        fetch('/api/preview?limit=100')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+                
+                const columns = data.columns || [];
+                const rows = data.data || [];
+                
+                // Populate header
+                const header = document.getElementById('tableHeader');
+                columns.forEach(col => {
+                    const th = document.createElement('th');
+                    th.className = 'p-3 text-left font-bold border-b-2 border-gray-300';
+                    th.textContent = col;
+                    header.appendChild(th);
+                });
+                
+                // Populate body
+                const tbody = document.getElementById('tableBody');
+                rows.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b hover:bg-gray-50';
+                    row.forEach(cellValue => {
+                        const td = document.createElement('td');
+                        td.className = 'p-3';
+                        td.textContent = cellValue !== null && cellValue !== undefined ? cellValue : '-';
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+                
+                document.getElementById('rowCount').textContent = rows.length;
+                document.getElementById('loadingDiv').style.display = 'none';
+            })
+            .catch(error => {
+                document.getElementById('loadingDiv').innerHTML = 
+                    `<p class="text-red-600">Error loading data: ${error.message}</p>`;
+            });
+    </script>
+</body>
+</html>

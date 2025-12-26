@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scatter Plot - Data Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .loading { display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(0,0,0,.1); border-radius: 50%; border-top-color: #667eea; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #chartImage { max-width: 100%; height: auto; max-height: 70vh; object-fit: contain; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="gradient-bg py-6 shadow-lg mb-8">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-white">
+                    <i class="fas fa-braille mr-2"></i>Scatter Plot - Correlation Analysis
+                </h1>
+                <a href="/dashboard" class="bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-purple-50 transition">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-xl shadow-lg p-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">X-Axis Column:</label>
+                    <select id="xColumnSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600">
+                        <option value="">Loading columns...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Y-Axis Column:</label>
+                    <select id="yColumnSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600">
+                        <option value="">Loading columns...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="loadingDiv" class="text-center py-12">
+                <div class="loading mx-auto mb-4"></div>
+                <p class="text-gray-600">Generating scatter plot...</p>
+            </div>
+
+            <div id="chartContainer" class="hidden">
+                <div class="flex justify-center mb-4">
+                    <img id="chartImage" class="rounded-lg shadow-lg" alt="Scatter Plot">
+                </div>
+                <div class="mt-6 bg-gray-50 p-6 rounded-lg">
+                    <h3 class="text-xl font-bold mb-4">Correlation Analysis</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <p class="text-3xl font-bold text-blue-600" id="correlation">-</p>
+                            <p class="text-sm text-gray-600">Correlation Coefficient</p>
+                        </div>
+                        <div class="text-center p-4 bg-purple-50 rounded-lg">
+                            <p class="text-2xl font-bold text-purple-600" id="strength">-</p>
+                            <p class="text-sm text-gray-600">Correlation Strength</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="errorDiv" class="hidden text-center py-12 text-red-600"></div>
+        </div>
+    </div>
+
+    <script>
+        fetch('/api/numeric-columns')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                const columns = data.columns || [];
+                
+                if (columns.length < 2) {
+                    document.getElementById('loadingDiv').classList.add('hidden');
+                    document.getElementById('errorDiv').classList.remove('hidden');
+                    document.getElementById('errorDiv').textContent = 'Error: Need at least 2 numeric columns for scatter plot. Please ensure your dataset has numeric data.';
+                    return;
+                }
+                
+                const xSelect = document.getElementById('xColumnSelect');
+                const ySelect = document.getElementById('yColumnSelect');
+                
+                xSelect.innerHTML = '<option value="">-- Select X column --</option>';
+                ySelect.innerHTML = '<option value="">-- Select Y column --</option>';
+                
+                columns.forEach(col => {
+                    xSelect.appendChild(new Option(col, col));
+                    ySelect.appendChild(new Option(col, col));
+                });
+                
+                if (columns.length >= 2) {
+                    xSelect.value = columns[0];
+                    ySelect.value = columns[1];
+                    loadChart();
+                }
+            })
+            .catch(error => {
+                document.getElementById('loadingDiv').classList.add('hidden');
+                document.getElementById('errorDiv').classList.remove('hidden');
+                document.getElementById('errorDiv').textContent = 'Error loading columns: ' + error.message;
+            });
+
+        document.getElementById('xColumnSelect').addEventListener('change', loadChart);
+        document.getElementById('yColumnSelect').addEventListener('change', loadChart);
+
+        function loadChart() {
+            const xCol = document.getElementById('xColumnSelect').value;
+            const yCol = document.getElementById('yColumnSelect').value;
+            
+            if (!xCol || !yCol) return;
+            
+            document.getElementById('loadingDiv').classList.remove('hidden');
+            document.getElementById('chartContainer').classList.add('hidden');
+            document.getElementById('errorDiv').classList.add('hidden');
+
+            fetch(`/api/visualization/scatter-plot?x_column=${encodeURIComponent(xCol)}&y_column=${encodeURIComponent(yCol)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) throw new Error(data.error);
+                    
+                    document.getElementById('chartImage').src = 'data:image/png;base64,' + data.image;
+                    document.getElementById('correlation').textContent = data.correlation.toFixed(3);
+                    document.getElementById('strength').textContent = data.correlation_strength.toUpperCase();
+                    
+                    document.getElementById('loadingDiv').classList.add('hidden');
+                    document.getElementById('chartContainer').classList.remove('hidden');
+                })
+                .catch(error => {
+                    document.getElementById('loadingDiv').classList.add('hidden');
+                    document.getElementById('errorDiv').classList.remove('hidden');
+                    document.getElementById('errorDiv').textContent = 'Error: ' + error.message;
+                });
+        }
+    </script>
+</body>
+</html>
