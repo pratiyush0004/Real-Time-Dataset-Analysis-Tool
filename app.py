@@ -13,6 +13,10 @@ from werkzeug.utils import secure_filename
 import requests
 import json
 import re
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-change-this-in-production-12345'
