@@ -231,7 +231,20 @@
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                // Check if response is ok and has content
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        try {
+                            const json = JSON.parse(text);
+                            throw new Error(json.error || 'Upload failed');
+                        } catch (e) {
+                            throw new Error(text || 'Upload failed');
+                        }
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 progressBar.style.width = '100%';
                 
